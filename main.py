@@ -42,17 +42,12 @@ class ACO_Knapsack:
         solution = np.zeros(self.n_items)
         total_w1 = 0
 
-        # Randomize item order to explore different paths
         items = list(range(self.n_items))
         random.shuffle(items)
 
         for i in items:
-            # Constraint check: Does the item fit in the capacity?
             if total_w1 + self.w1[i] <= self.capacity:
-                # Heuristic: Favor high Value and low w2
                 heuristic = self.values[i] / (self.w2[i] + 1)
-                
-                # Probability formula based on Pheromone and Heuristic
                 prob = (self.pheromone[i] ** self.alpha) * (heuristic ** self.beta)
 
                 if random.random() < prob / (1 + prob):
@@ -67,7 +62,6 @@ class ACO_Knapsack:
         total_w1 = np.sum(solution * self.w1)
         total_w2 = np.sum(solution * self.w2)
 
-        # Final check if the solution is valid
         if total_w1 > self.capacity:
             return None
 
@@ -77,12 +71,11 @@ class ACO_Knapsack:
         """Evaporate and deposit pheromones based on solution quality."""
         self.pheromone *= (1 - self.rho)
         for sol, value in solutions:
-            # More value = more pheromone deposit
             self.pheromone += sol * (value / (np.max(self.values) + 1))
 
     def run(self):
         """Main loop for the ACO algorithm."""
-        all_results = [] # Stores history of all valid solutions
+        all_results = [] 
 
         for _ in range(self.n_iter):
             iteration_solutions = []
@@ -93,7 +86,6 @@ class ACO_Knapsack:
                 if res is not None:
                     value, w2 = res
                     iteration_solutions.append((sol, value))
-                    # Store mask along with objective values
                     all_results.append({
                         'mask': sol,
                         'value': value,
@@ -108,22 +100,18 @@ class ACO_Knapsack:
 # PARETO FRONT
 # ===============================
 def get_pareto_front(all_data):
-    """Filters solutions to find the non-dominated Pareto Front."""
     pareto = []
     for p in all_data:
         dominated = False
         for q in all_data:
-            # p is dominated if q has higher value AND lower w2
             if (q['value'] >= p['value'] and q['w2'] <= p['w2']) and \
                (q['value'] > p['value'] or q['w2'] < p['w2']):
                 dominated = True
                 break
         if not dominated:
-            # Avoid duplicate binary masks
             if not any(np.array_equal(p['mask'], x['mask']) for x in pareto):
                 pareto.append(p)
     
-    # Sort by value for better table presentation
     pareto.sort(key=lambda x: x['value'])
     return pareto
 
@@ -140,6 +128,13 @@ uploaded_file = st.sidebar.file_uploader("Upload Dataset (CSV)", type="csv")
 if uploaded_file:
     df = load_data(uploaded_file)
     
+    # --- NEW SECTION: DATASET PREVIEW ---
+    st.subheader("📊 Dataset Preview")
+    st.write(f"The dataset contains **{len(df)}** items.")
+    st.dataframe(df.head(10)) # Shows the first 10 rows
+    st.divider()
+    # ------------------------------------
+    
     # Sidebar Controls
     st.sidebar.subheader("Algorithm Configuration")
     n_ants = st.sidebar.slider("Number of Ants", 10, 100, 30)
@@ -153,7 +148,7 @@ if uploaded_file:
     st.sidebar.subheader("🔧 Capacity Setting (Constraint)")
     ratio = st.sidebar.slider("Capacity Ratio (w1)", 0.1, 0.9, 0.3)
     capacity = int(ratio * total_w1_all)
-    st.sidebar.info(f"w1 Limit: {capacity}")
+    st.sidebar.info(f"w1 Limit (Capacity): {capacity}")
 
     if st.button("🚀 Run ACO Optimization"):
         with st.spinner("Ants are searching for optimal paths..."):
@@ -161,7 +156,6 @@ if uploaded_file:
             all_history = aco.run()
             pareto_list = get_pareto_front(all_history)
             
-        # Display Results
         st.success(f"Success! Found {len(pareto_list)} Pareto solutions.")
         
         col1, col2 = st.columns([2, 1])
@@ -181,12 +175,10 @@ if uploaded_file:
 
         with col2:
             st.subheader("Pareto Table (Value vs w2)")
-            # Show table without the mask column for clarity
             st.dataframe(df_pareto[['value', 'w2']])
 
         st.divider()
         
-        # ITEM INSPECTION SECTION
         st.subheader("🔍 Inspect Selected Items")
         selected_idx = st.selectbox(
             "Select a solution index to see its items:",
@@ -194,16 +186,13 @@ if uploaded_file:
             format_func=lambda x: f"Solution {x}: Value={df_pareto.iloc[x]['value']}, w2={df_pareto.iloc[x]['w2']}"
         )
         
-        # Get the binary mask for the selected Pareto row
         chosen_mask = df_pareto.iloc[selected_idx]['mask']
         selected_indices = np.where(chosen_mask == 1)[0]
         
-        # Filter the original dataframe to show selected items
         selected_items_table = df.iloc[selected_indices]
         st.write(f"Displaying **{len(selected_items_table)} items** chosen for Solution {selected_idx}:")
         st.dataframe(selected_items_table)
         
-        # Mathematical Confirmation
         st.info(f"""
         **Solution {selected_idx} Analysis:**
         * Total Value: **{selected_items_table['value'].sum()}**

@@ -11,94 +11,66 @@ import matplotlib.pyplot as plt
 # ===============================
 @st.cache_data
 def load_data(file):
-    """Loads the CSV dataset."""
     return pd.read_csv(file)
 
 # ===============================
 # ANT COLONY OPTIMIZATION (ACO)
 # ===============================
 class ACO_Knapsack:
-    def __init__(self, values, w1, w2, capacity,
-                 n_ants=30, n_iter=50,
-                 alpha=1.0, beta=2.0, rho=0.1):
-
+    def __init__(self, values, w1, w2, capacity, n_ants=30, n_iter=50, alpha=1.0, beta=2.0, rho=0.1):
         self.values = values
         self.w1 = w1
         self.w2 = w2
         self.capacity = capacity
         self.n_items = len(values)
-
         self.n_ants = n_ants
         self.n_iter = n_iter
         self.alpha = alpha
         self.beta = beta
         self.rho = rho
-
-        # Pheromone trail for each item
         self.pheromone = np.ones(self.n_items)
 
     def construct_solution(self):
-        """Individual ant builds a solution."""
         solution = np.zeros(self.n_items)
         total_w1 = 0
-
         items = list(range(self.n_items))
         random.shuffle(items)
-
         for i in items:
             if total_w1 + self.w1[i] <= self.capacity:
                 heuristic = self.values[i] / (self.w2[i] + 1)
                 prob = (self.pheromone[i] ** self.alpha) * (heuristic ** self.beta)
-
                 if random.random() < prob / (1 + prob):
                     solution[i] = 1
                     total_w1 += self.w1[i]
-
         return solution
 
     def evaluate(self, solution):
-        """Calculates total value, w1 usage, and w2 usage."""
         total_value = np.sum(solution * self.values)
         total_w1 = np.sum(solution * self.w1)
         total_w2 = np.sum(solution * self.w2)
-
         if total_w1 > self.capacity:
             return None
-
         return total_value, total_w2
 
     def update_pheromone(self, solutions):
-        """Evaporate and deposit pheromones based on solution quality."""
         self.pheromone *= (1 - self.rho)
         for sol, value in solutions:
             self.pheromone += sol * (value / (np.max(self.values) + 1))
 
     def run(self):
-        """Main loop for the ACO algorithm."""
         all_results = [] 
-
         for _ in range(self.n_iter):
             iteration_solutions = []
             for _ in range(self.n_ants):
                 sol = self.construct_solution()
                 res = self.evaluate(sol)
-
                 if res is not None:
                     value, w2 = res
                     iteration_solutions.append((sol, value))
-                    all_results.append({
-                        'mask': sol,
-                        'value': value,
-                        'w2': w2
-                    })
-
+                    all_results.append({'mask': sol, 'value': value, 'w2': w2})
             self.update_pheromone(iteration_solutions)
-
         return all_results
 
-# ===============================
-# PARETO FRONT
-# ===============================
 def get_pareto_front(all_data):
     pareto = []
     for p in all_data:
@@ -111,7 +83,6 @@ def get_pareto_front(all_data):
         if not dominated:
             if not any(np.array_equal(p['mask'], x['mask']) for x in pareto):
                 pareto.append(p)
-    
     pareto.sort(key=lambda x: x['value'])
     return pareto
 
@@ -120,22 +91,17 @@ def get_pareto_front(all_data):
 # ===============================
 st.set_page_config(page_title="ACO Knapsack Optimizer", layout="wide")
 
-st.title("ACO Multi-Objective Knapsack")
-st.write("Finding the balance between **Maximum Value** and **Minimum w2** under **w1** constraints.")
+st.title("🎒 ACO Multi-Objective Knapsack")
 
 uploaded_file = st.sidebar.file_uploader("Upload Dataset (CSV)", type="csv")
 
 if uploaded_file:
     df = load_data(uploaded_file)
     
-    # --- NEW SECTION: DATASET PREVIEW ---
     st.subheader("📊 Dataset Preview")
-    st.write(f"The dataset contains **{len(df)}** items.")
-    st.dataframe(df.head(10)) # Shows the first 10 rows
-    st.divider()
-    # ------------------------------------
+    st.dataframe(df.head(5))
     
-    # Sidebar Controls
+    # Sidebar
     st.sidebar.subheader("Algorithm Configuration")
     n_ants = st.sidebar.slider("Number of Ants", 10, 100, 30)
     n_iter = st.sidebar.slider("Iterations", 10, 200, 50)
@@ -144,61 +110,74 @@ if uploaded_file:
     w1 = df["w1"].values
     w2 = df["w2"].values
     total_w1_all = np.sum(w1)
-
-    st.sidebar.subheader("🔧 Capacity Setting (Constraint)")
     ratio = st.sidebar.slider("Capacity Ratio (w1)", 0.1, 0.9, 0.3)
     capacity = int(ratio * total_w1_all)
-    st.sidebar.info(f"w1 Limit (Capacity): {capacity}")
+    st.sidebar.info(f"w1 Limit: {capacity}")
 
-    if st.button(" Run ACO Optimization"):
-        with st.spinner("Ants are searching for optimal paths..."):
+    # --- PENYELESAIAN MASALAH RESTART ---
+    # Guna Session State untuk simpan hasil run
+    if 'aco_results' not in st.session_state:
+        st.session_state.aco_results = None
+    if 'all_history' not in st.session_state:
+        st.session_state.all_history = None
+
+    if st.button("🚀 Run ACO Optimization"):
+        with st.spinner("Ants are searching..."):
             aco = ACO_Knapsack(values, w1, w2, capacity, n_ants=n_ants, n_iter=n_iter)
             all_history = aco.run()
             pareto_list = get_pareto_front(all_history)
             
-        st.success(f"Success! Found {len(pareto_list)} Pareto solutions.")
-        
-        col1, col2 = st.columns([2, 1])
+            # Simpan ke session state
+            st.session_state.aco_results = pareto_list
+            st.session_state.all_history = all_history
+            st.success(f"Found {len(pareto_list)} Pareto solutions.")
+
+    # Paparkan hasil hanya jika session_state ada data
+    if st.session_state.aco_results is not None:
+        pareto_list = st.session_state.aco_results
+        all_history = st.session_state.all_history
         
         df_all = pd.DataFrame(all_history)
         df_pareto = pd.DataFrame(pareto_list)
 
+        col1, col2 = st.columns([2, 1])
         with col1:
             st.subheader("Pareto Front Visualization")
             fig, ax = plt.subplots()
-            ax.scatter(df_all['w2'], df_all['value'], color='grey', alpha=0.2, label="All Valid Solutions")
-            ax.scatter(df_pareto['w2'], df_pareto['value'], color='red', s=50, label="Pareto Front")
+            ax.scatter(df_all['w2'], df_all['value'], color='grey', alpha=0.2)
+            ax.scatter(df_pareto['w2'], df_pareto['value'], color='red', s=50)
             ax.set_xlabel("Total w2 (Minimize)")
             ax.set_ylabel("Total Value (Maximize)")
-            ax.legend()
             st.pyplot(fig)
 
         with col2:
-            st.subheader("Pareto Table (Value vs w2)")
+            st.subheader("Pareto Table")
             st.dataframe(df_pareto[['value', 'w2']])
 
         st.divider()
         
+        # BAHAGIAN INSPECTION (Tidak akan restart ke Solution 0 lagi)
         st.subheader("🔍 Inspect Selected Items")
         selected_idx = st.selectbox(
-            "Select a solution index to see its items:",
+            "Select a solution index:",
             options=range(len(df_pareto)),
-            format_func=lambda x: f"Solution {x}: Value={df_pareto.iloc[x]['value']}, w2={df_pareto.iloc[x]['w2']}"
+            index=0, # Default mula dengan 0 tapi boleh tukar
+            key="solution_selector"
         )
         
         chosen_mask = df_pareto.iloc[selected_idx]['mask']
         selected_indices = np.where(chosen_mask == 1)[0]
-        
         selected_items_table = df.iloc[selected_indices]
-        st.write(f"Displaying **{len(selected_items_table)} items** chosen for Solution {selected_idx}:")
+        
+        st.write(f"Displaying items for **Solution {selected_idx}**:")
         st.dataframe(selected_items_table)
         
         st.info(f"""
-        **Solution {selected_idx} Analysis:**
-        * Total Value: **{selected_items_table['value'].sum()}**
-        * Total w2: **{selected_items_table['w2'].sum()}**
-        * w1 Capacity Usage: **{selected_items_table['w1'].sum()} / {capacity}**
+        **Analysis:**
+        * Total Value: {selected_items_table['value'].sum()}
+        * Total w2: {selected_items_table['w2'].sum()}
+        * w1 Usage: {selected_items_table['w1'].sum()} / {capacity}
         """)
 
 else:
-    st.warning("Please upload a CSV dataset to begin.")
+    st.warning("Please upload a CSV dataset.")

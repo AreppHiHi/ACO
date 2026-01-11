@@ -120,7 +120,7 @@ def get_pareto_front(all_data):
 # ===============================
 st.set_page_config(page_title="ACO Knapsack Optimizer", layout="wide")
 
-st.title("🎒 ACO Multi-Objective Knapsack")
+st.title("ACO Multi-Objective Knapsack")
 st.write("Finding the balance between **Maximum Value** and **Minimum w2** under **w1** constraints.")
 
 uploaded_file = st.sidebar.file_uploader("Upload Dataset (CSV)", type="csv")
@@ -150,7 +150,7 @@ if uploaded_file:
     capacity = int(ratio * total_w1_all)
     st.sidebar.info(f"w1 Limit (Capacity): {capacity}")
 
-    if st.button("🚀 Run ACO Optimization"):
+    if st.button(" Run ACO Optimization"):
         with st.spinner("Ants are searching for optimal paths..."):
             aco = ACO_Knapsack(values, w1, w2, capacity, n_ants=n_ants, n_iter=n_iter)
             all_history = aco.run()

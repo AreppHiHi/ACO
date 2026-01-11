@@ -126,7 +126,7 @@ def get_pareto_front(all_data):
 # ===============================
 st.set_page_config(page_title="ACO Knapsack Optimizer", layout="wide")
 
-st.title("🎒 ACO Multi-Objective Knapsack Optimizer")
+st.title(" ACO Multi-Objective Knapsack Optimizer")
 st.write("Balancing **Maximum Value** and **Minimum w2** under **w1** capacity constraints.")
 
 uploaded_file = st.sidebar.file_uploader("Upload Dataset (CSV)", type="csv")
@@ -135,7 +135,7 @@ if uploaded_file:
     df = load_data(uploaded_file)
     
     # Dataset Preview Section
-    st.subheader("📊 Dataset Preview")
+    st.subheader(" Dataset Preview")
     st.write(f"The dataset contains **{len(df)}** items.")
     st.dataframe(df.head(10)) 
     st.divider()
@@ -150,7 +150,7 @@ if uploaded_file:
     w2 = df["w2"].values
     total_w1_all = np.sum(w1)
 
-    st.sidebar.subheader("🔧 Capacity Setting (Constraint)")
+    st.sidebar.subheader(" Capacity Setting (Constraint)")
     ratio = st.sidebar.slider("Capacity Ratio (w1)", 0.1, 0.9, 0.3)
     capacity = int(ratio * total_w1_all)
     st.sidebar.info(f"w1 Capacity Limit: {capacity}")
@@ -161,7 +161,7 @@ if uploaded_file:
     if 'pareto_results' not in st.session_state:
         st.session_state.pareto_results = None
 
-    if st.button("🚀 Run ACO Optimization"):
+    if st.button(" Run ACO Optimization"):
         with st.spinner("Ants are searching for optimal solutions..."):
             aco = ACO_Knapsack(values, w1, w2, capacity, n_ants=n_ants, n_iter=n_iter)
             all_history = aco.run()
@@ -200,7 +200,7 @@ if uploaded_file:
         st.divider()
         
         # ITEM INSPECTION SECTION
-        st.subheader("🔍 Inspect Selected Items")
+        st.subheader(" Inspect Selected Items")
         
         # Formatting function for the selectbox labels
         def format_solution_label(idx):

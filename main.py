@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 # ===============================
 @st.cache_data
 def load_data(file):
-    """Memuatkan dataset CSV."""
+    """Loads the CSV dataset."""
     return pd.read_csv(file)
 
 # ===============================
@@ -34,11 +34,11 @@ class ACO_Knapsack:
         self.beta = beta
         self.rho = rho
 
-        # Pheromone trail untuk setiap item
+        # Pheromone trail for each item
         self.pheromone = np.ones(self.n_items)
 
     def construct_solution(self):
-        """Semut membina solusi secara berperingkat."""
+        """Individual ant builds a solution step-by-step."""
         solution = np.zeros(self.n_items)
         total_w1 = 0
 
@@ -47,10 +47,10 @@ class ACO_Knapsack:
 
         for i in items:
             if total_w1 + self.w1[i] <= self.capacity:
-                # Heuristic: Utamakan Value tinggi dan w2 rendah
+                # Heuristic: Favor high Value and low w2
                 heuristic = self.values[i] / (self.w2[i] + 1)
                 
-                # Formula kebarangkalian berdasarkan Pheromone dan Heuristic
+                # Probability formula based on Pheromone and Heuristic
                 prob = (self.pheromone[i] ** self.alpha) * (heuristic ** self.beta)
 
                 if random.random() < prob / (1 + prob):
@@ -60,7 +60,7 @@ class ACO_Knapsack:
         return solution
 
     def evaluate(self, solution):
-        """Kira jumlah Value, w1, dan w2."""
+        """Calculates total Value, w1 usage, and w2 usage."""
         total_value = np.sum(solution * self.values)
         total_w1 = np.sum(solution * self.w1)
         total_w2 = np.sum(solution * self.w2)
@@ -71,13 +71,14 @@ class ACO_Knapsack:
         return total_value, total_w2
 
     def update_pheromone(self, solutions):
-        """Proses penyejatan dan penambahan pheromone."""
+        """Evaporate and deposit pheromones based on solution quality."""
         self.pheromone *= (1 - self.rho)
         for sol, value in solutions:
+            # More value = higher pheromone deposit
             self.pheromone += sol * (value / (np.max(self.values) + 1))
 
     def run(self):
-        """Loop utama algoritma ACO."""
+        """Main loop for the ACO algorithm."""
         all_results = [] 
 
         for _ in range(self.n_iter):
@@ -103,7 +104,7 @@ class ACO_Knapsack:
 # PARETO FRONT
 # ===============================
 def get_pareto_front(all_data):
-    """Menapis solusi untuk mencari Pareto Front (Non-dominated)."""
+    """Filters solutions to find the non-dominated Pareto Front."""
     pareto = []
     for p in all_data:
         dominated = False
@@ -116,6 +117,7 @@ def get_pareto_front(all_data):
             if not any(np.array_equal(p['mask'], x['mask']) for x in pareto):
                 pareto.append(p)
     
+    # Sort by value for better table presentation
     pareto.sort(key=lambda x: x['value'])
     return pareto
 
@@ -124,17 +126,17 @@ def get_pareto_front(all_data):
 # ===============================
 st.set_page_config(page_title="ACO Knapsack Optimizer", layout="wide")
 
-st.title(" ACO Multi-Objective Knapsack")
-st.write("Mencari keseimbangan antara **Maksimum Value** dan **Minimum w2** di bawah kekangan **w1**.")
+st.title("🎒 ACO Multi-Objective Knapsack Optimizer")
+st.write("Balancing **Maximum Value** and **Minimum w2** under **w1** capacity constraints.")
 
 uploaded_file = st.sidebar.file_uploader("Upload Dataset (CSV)", type="csv")
 
 if uploaded_file:
     df = load_data(uploaded_file)
     
-    # Dataset Preview
+    # Dataset Preview Section
     st.subheader("📊 Dataset Preview")
-    st.write(f"Dataset mengandungi **{len(df)}** item.")
+    st.write(f"The dataset contains **{len(df)}** items.")
     st.dataframe(df.head(10)) 
     st.divider()
     
@@ -148,30 +150,30 @@ if uploaded_file:
     w2 = df["w2"].values
     total_w1_all = np.sum(w1)
 
-    st.sidebar.subheader(" Capacity Setting (Constraint)")
+    st.sidebar.subheader("🔧 Capacity Setting (Constraint)")
     ratio = st.sidebar.slider("Capacity Ratio (w1)", 0.1, 0.9, 0.3)
     capacity = int(ratio * total_w1_all)
-    st.sidebar.info(f"w1 Limit (Capacity): {capacity}")
+    st.sidebar.info(f"w1 Capacity Limit: {capacity}")
 
-    # Inisialisasi Session State
+    # Initialize Session State to prevent data loss on widget interaction
     if 'aco_history' not in st.session_state:
         st.session_state.aco_history = None
     if 'pareto_results' not in st.session_state:
         st.session_state.pareto_results = None
 
-    if st.button(" Run ACO Optimization"):
-        with st.spinner("Semut sedang mencari jalan optimum..."):
+    if st.button("🚀 Run ACO Optimization"):
+        with st.spinner("Ants are searching for optimal solutions..."):
             aco = ACO_Knapsack(values, w1, w2, capacity, n_ants=n_ants, n_iter=n_iter)
             all_history = aco.run()
             pareto_list = get_pareto_front(all_history)
             
-            # Simpan ke session state supaya tidak hilang bila guna selectbox
+            # Save results to session state
             st.session_state.aco_history = all_history
             st.session_state.pareto_results = pareto_list
             
-        st.success(f"Berjaya! Menemui {len(pareto_list)} solusi Pareto.")
+        st.success(f"Success! Found {len(pareto_list)} Pareto-optimal solutions.")
 
-    # Paparkan hasil jika data wujud dalam Session State
+    # Display results if data exists in Session State
     if st.session_state.pareto_results is not None:
         all_history = st.session_state.aco_history
         pareto_list = st.session_state.pareto_results
@@ -184,10 +186,10 @@ if uploaded_file:
         with col1:
             st.subheader("Pareto Front Visualization")
             fig, ax = plt.subplots()
-            ax.scatter(df_all['w2'], df_all['value'], color='grey', alpha=0.2, label="Semua Solusi Sah")
+            ax.scatter(df_all['w2'], df_all['value'], color='grey', alpha=0.2, label="Valid Solutions")
             ax.scatter(df_pareto['w2'], df_pareto['value'], color='red', s=50, label="Pareto Front")
-            ax.set_xlabel("Total w2 (Minimumkan)")
-            ax.set_ylabel("Total Value (Maksimumkan)")
+            ax.set_xlabel("Total w2 (Minimize)")
+            ax.set_ylabel("Total Value (Maximize)")
             ax.legend()
             st.pyplot(fig)
 
@@ -200,35 +202,35 @@ if uploaded_file:
         # ITEM INSPECTION SECTION
         st.subheader("🔍 Inspect Selected Items")
         
-        # Fungsi label untuk selectbox
-        def format_solusi(idx):
+        # Formatting function for the selectbox labels
+        def format_solution_label(idx):
             sol = df_pareto.iloc[idx]
             n_items = int(np.sum(sol['mask']))
-            return f"Solution {idx}: [Value: {sol['value']}] | [w2: {sol['w2']}] | [{n_items} Items]"
+            return f"Solution {idx}: [Value: {sol['value']}] | [w2: {sol['w2']}] | [{n_items} Items Selected]"
 
         selected_idx = st.selectbox(
-            "Pilih indeks solusi untuk melihat senarai item:",
+            "Select a solution index to see the item breakdown:",
             options=range(len(df_pareto)),
-            format_func=format_solusi,
+            format_func=format_solution_label,
             key="inspect_selector"
         )
         
-        # Ambil mask bagi baris yang dipilih
+        # Retrieve the mask for the selected solution
         chosen_mask = df_pareto.iloc[selected_idx]['mask']
         selected_indices = np.where(chosen_mask == 1)[0]
         selected_items_table = df.iloc[selected_indices]
         
-        st.write(f"Memaparkan **{len(selected_items_table)} item** yang dipilih untuk **Solution {selected_idx}**:")
+        st.write(f"Displaying **{len(selected_items_table)} items** chosen for **Solution {selected_idx}**:")
         st.dataframe(selected_items_table)
         
-        # Analisis Ringkas
+        # Summary Analysis Info Box
         st.info(f"""
-        **Analisis Solution {selected_idx}:**
-        * Jumlah Keuntungan (Value): **{selected_items_table['value'].sum()}**
-        * Jumlah Kos (w2): **{selected_items_table['w2'].sum()}**
-        * Bilangan Item: **{len(selected_items_table)}**
-        * Penggunaan Kapasiti w1: **{selected_items_table['w1'].sum()} / {capacity}**
+        **Analysis for Solution {selected_idx}:**
+        * Total Profit (Value): **{selected_items_table['value'].sum()}**
+        * Total Operational Cost (w2): **{selected_items_table['w2'].sum()}**
+        * Total Items Selected: **{len(selected_items_table)}**
+        * w1 Capacity Usage: **{selected_items_table['w1'].sum()} / {capacity}**
         """)
 
 else:
-    st.warning("Sila muat naik dataset CSV untuk bermula.")
+    st.warning("Please upload a CSV dataset to begin.")

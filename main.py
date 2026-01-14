@@ -223,7 +223,7 @@ if st.session_state.pareto:
         st.pyplot(fig)
 
     with col2:
-        st.subheader("📊 Pareto Solutions")
+        st.subheader(" Pareto Solutions")
         st.dataframe(df_pareto[["value", "w2"]])
 
     st.divider()

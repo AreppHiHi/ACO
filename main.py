@@ -231,7 +231,7 @@ if st.session_state.pareto:
     # ===============================
     # SOLUTION INSPECTION
     # ===============================
-    st.subheader("🔍 Inspect Selected Solution")
+    st.subheader(" Inspect Selected Solution")
 
     def format_label(i):
         sol = df_pareto.iloc[i]

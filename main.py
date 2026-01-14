@@ -39,7 +39,7 @@ if not csv_files:
     st.error("No CSV datasets found in the project directory.")
     st.stop()
 
-st.sidebar.subheader("📂 Dataset Selection")
+st.sidebar.subheader(" Dataset Selection")
 selected_file = st.sidebar.selectbox(
     "Choose a dataset",
     options=csv_files
@@ -157,7 +157,7 @@ def get_pareto_front(data):
 # ===============================
 # SIDEBAR PARAMETERS
 # ===============================
-st.sidebar.subheader("⚙️ ACO Parameters")
+st.sidebar.subheader(" ACO Parameters")
 
 n_ants = st.sidebar.slider("Number of Ants", 10, 100, 30)
 n_iter = st.sidebar.slider("Iterations", 10, 200, 50)
@@ -168,7 +168,7 @@ w2 = df["w2"].values
 
 total_w1 = np.sum(w1)
 
-st.sidebar.subheader("🎯 Capacity Constraint")
+st.sidebar.subheader(" Capacity Constraint")
 ratio = st.sidebar.slider("Capacity Ratio (w1)", 0.1, 0.9, 0.3)
 capacity = int(ratio * total_w1)
 st.sidebar.info(f"w1 Capacity = {capacity}")
@@ -184,7 +184,7 @@ if "pareto" not in st.session_state:
 # ===============================
 # RUN OPTIMIZATION
 # ===============================
-if st.button("🚀 Run ACO Optimization"):
+if st.button(" Run ACO Optimization"):
     with st.spinner("Ants are searching for optimal solutions..."):
         aco = ACO_Knapsack(
             values, w1, w2, capacity,
@@ -213,7 +213,7 @@ if st.session_state.pareto:
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.subheader("📈 Pareto Front Visualization")
+        st.subheader(" Pareto Front Visualization")
         fig, ax = plt.subplots()
         ax.scatter(df_all["w2"], df_all["value"], alpha=0.2, label="All Solutions")
         ax.scatter(df_pareto["w2"], df_pareto["value"], color="red", s=50, label="Pareto Front")

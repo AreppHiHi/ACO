@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🐜 ACO Multi-Objective Knapsack Optimizer")
+st.title(" ACO Multi-Objective Knapsack Optimizer")
 st.write(
     "Optimizing **Maximum Value** and **Minimum w2** under **w1 capacity constraint** "
     "using **Ant Colony Optimization (ACO)**."
@@ -51,7 +51,7 @@ st.sidebar.success(f"Loaded: {selected_file}")
 # ===============================
 # DATA PREVIEW
 # ===============================
-st.subheader("📄 Dataset Preview")
+st.subheader(" Dataset Preview")
 st.write(f"Total items: **{len(df)}**")
 st.dataframe(df.head(10))
 st.divider()
